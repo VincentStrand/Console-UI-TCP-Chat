@@ -248,11 +248,11 @@ int eventHandler()
 						{
 							clearScrn();
 							drawBorder();
-							//mkSubWindowiii(1,1,68,10,"servers");
+							mkSubWindowiii(1,1,68,10,"servers");
 							//text display
-							//mkSubWindowiii(1,11,62,68,"test test test oooooooooooooooo");
+							mkSubWindowiii(1,11,62,68,"test test test oooooooooooooooo");
 							//text input
-							//mkSubWindowiii(63,11,68,68,"test");
+							mkSubWindowiii(63,11,68,68,"test");
 						}
 					/*case VK_Q:
 						offsetx = eventBuffer[i].Event.MouseEvent.dwMousePosition.X;
