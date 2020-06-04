@@ -115,6 +115,15 @@ void mkSubWindowiii(int x, int y, int xoff, int yoff, char text[])
 	
 }
 
+void clrWindow(int x, int y, int xoff, int yoff)
+{
+	for (int i = 0; i < 56; i++)
+	{
+		for (int j= 0; j < 4;j++)
+			writeChar(' ', (x +1) +j, (y+1) + i);
+	}
+}
+
 
 void writeChar(char a, int x, int y)
 {
@@ -223,6 +232,10 @@ writeCircleToBuffer(CHAR_INFO buf[], int xoffset, int yoffset)
 
 int eventHandler()
 {
+	int pos = 0;
+	int level = 0;
+	int level2 = 0;
+	char input[200];
 	while(1)
 	{
 		//get input and number of events obtained
@@ -243,22 +256,58 @@ int eventHandler()
 					//if escape key is pressed
 					case VK_ESCAPE:
 						return 0;
-					case VK_C:
+					case VK_RETURN:
+						if (eventBuffer[i].Event.KeyEvent.bKeyDown == 1)
+						{
+							for (int p = 0; p < strlen(input); p++)
+							{
+								writeChar(input[p],2 + level2 ,12 + p);
+							}
+							for (int d = 0; d < strlen(input); d++)
+							{
+								input[d] = "";
+							}
+							clrWindow(63,11,68,68);
+							level2++;
+							pos = 0;
+							level = 0;
+							Write = YES;
+							break;
+						}
+						else
+						break;
+						
+					case VK_DELETE:
 						if (eventBuffer[i].Event.KeyEvent.bKeyDown == 0)
 						{
-							clearScrn();
+							//clearScrn();
 							drawBorder();
-							mkSubWindowiii(1,1,68,10,"servers");
+							mkSubWindowiii(1,1,68,10,"servers:");
 							//text display
-							mkSubWindowiii(1,11,62,68,"test test test oooooooooooooooo");
+							//mkSubWindowiii(1,11,62,68,"");
 							//text input
-							mkSubWindowiii(63,11,68,68,"test");
+							//mkSubWindowiii(63,11,68,68,"");
+							pos = 0;
+							Write = YES;
 						}
-					/*case VK_Q:
-						offsetx = eventBuffer[i].Event.MouseEvent.dwMousePosition.X;
-						offsety = eventBuffer[i].Event.MouseEvent.dwMousePosition.Y;
-						mkSubWindowii(offsetx,offsety,10);*/
 					break;
+				}
+				if (eventBuffer[i].Event.KeyEvent.bKeyDown == 1)
+				{
+					if (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_RETURN)
+						break;
+					else
+					{
+						writeChar(eventBuffer[i].Event.KeyEvent.wVirtualKeyCode, 64 + level, 12 + pos);
+						input[pos] = eventBuffer[i].Event.KeyEvent.wVirtualKeyCode;
+						pos++;
+						if (pos == 56)
+						{
+							level++;
+							pos = 0;
+						}
+						Write = YES;
+					}
 				}
 				break;
 				case MOUSE_EVENT:
@@ -271,8 +320,7 @@ int eventHandler()
 					}
 					else if (eventBuffer[i].Event.MouseEvent.dwButtonState == RIGHTMOST_BUTTON_PRESSED)
 					{
-						//writeCircleToBuffer(consoleBuffer, offsetx, offsety);
-						mkSubWindow(offsety,offsetx,10);
+						writeCircleToBuffer(consoleBuffer, offsetx, offsety);
 						Write = YES;
 					}
 					break;
@@ -283,7 +331,6 @@ int eventHandler()
 		if (Write)
 		{
 			WriteConsoleOutputA(wHnd, consoleBuffer, characterBufferSize, characterPosition, &consoleWriteArea);
-			//WriteConsoleOutputA(wHnd, windowBuffer, wcharacterBufferSize, wcharacterPosition, &windowWriteArea);
 			drawBorder();
 			Write = NO;
 		}
