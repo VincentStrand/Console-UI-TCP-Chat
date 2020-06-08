@@ -1,4 +1,8 @@
 #include "console.h"
+#define NI_MAXHOST 400
+#define NI_MAXSERV 400
+#include <string.h>
+//#include "main.c"
 
 void drawBorder()
 {
@@ -13,6 +17,8 @@ void drawBorder()
 		writeChar((unsigned char)219, ypos, WIDTH -1);
 	}
 }
+
+
 
 void mkSubWindow(int x, int y, int size)
 {
@@ -104,7 +110,7 @@ void mkSubWindowiii(int x, int y, int xoff, int yoff, char text[])
 		
 		writeChar(text[k], x + 1 + level, y + 1 + pos);
 		pos++;
-		if (pos == xoff - 2)
+		if (pos == xoff)
 		{ 
 			level++; 
 			pos = 0;
@@ -230,18 +236,78 @@ writeCircleToBuffer(CHAR_INFO buf[], int xoffset, int yoffset)
 	BACKGROUND_RED;
 }
 
+
+WSADATA wsaData;
+SOCKET listening;
+struct sockaddr_in hint;
 int eventHandler()
 {
+	if (WSAStartup(MAKEWORD(2,2),&wsaData) != 0)
+	{
+		mkSubWindowiii(10,20,12,32,"winsock no");
+	}
+	
+	listening = socket(AF_INET, SOCK_STREAM, 0);
+	if (listening == INVALID_SOCKET)
+	{
+		mkSubWindowiii(20,20,22,38,"socket fail");
+	}
+	
+	
+	//listening port stuff
+	
+	hint.sin_family = AF_INET;
+	hint.sin_addr.s_addr = inet_addr("127.0.0.1");
+	hint.sin_port = htons(3333);
+	bind(listening, (SOCKADDR*)&hint, sizeof(hint));
+	listen(listening, 1);
 	int pos = 0;
+	int pos2 = 0;
 	int level = 0;
 	int level2 = 0;
-	char input[200];
+	char input[4096];
+	struct sockaddr_in client;
+	int clientSize = sizeof(client);
+	
+	SOCKET clientSocket = accept(listening, (SOCKADDR*)&client, &clientSize);
+	char host[NI_MAXHOST];
+	char service[NI_MAXSERV];
+	
+	memset(host, 0, NI_MAXHOST);
+	memset(service, 0, NI_MAXSERV);
+	mkSubWindowiii(20,20,22,37,"client connected");
+	
+	if (getnameinfo((SOCKADDR*)&client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0)
+	{
+		mkSubWindowiii(10,20,12,32,"client connected");
+	}
+	else
+	{
+		inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
+		mkSubWindowiii(10,20,12,32,"client connected");
+	}
+	
+	closesocket(listening);
+	
+	char buf[4096];
 	while(1)
 	{
+		memset(buf, 0, 4096);
+		int bytesRecieved = recv(clientSocket, buf, 4096, 0);
+		if (bytesRecieved == SOCKET_ERROR)
+		{
+			mkSubWindowiii(10,20,12,32,"recv() did a fucky wucky");
+			break;
+		}
+		if (bytesRecieved == 0)
+		{
+			mkSubWindowiii(10,20,12,36,"client was yeeted");
+			break;
+		}
+		sprintf(input, "%d", bytesRecieved);
+		
 		//get input and number of events obtained
 		numEventsRead = getInput(&eventBuffer);
-		
-		//if more thant 0 are read
 		if (numEventsRead)
 		{
 			for (i = 0; i < numEventsRead; i++)
@@ -261,7 +327,13 @@ int eventHandler()
 						{
 							for (int p = 0; p < strlen(input); p++)
 							{
-								writeChar(input[p],2 + level2 ,12 + p);
+								if (p == 56)
+								{
+									level2++;
+									pos2 = 0;
+								}
+								writeChar(input[p],2 + level2 ,12 + pos2);
+								pos2++;
 							}
 							for (int d = 0; d < strlen(input); d++)
 							{
@@ -270,6 +342,7 @@ int eventHandler()
 							clrWindow(63,11,68,68);
 							level2++;
 							pos = 0;
+							pos2 = 0;
 							level = 0;
 							Write = YES;
 							break;
@@ -277,19 +350,6 @@ int eventHandler()
 						else
 						break;
 						
-					case VK_DELETE:
-						if (eventBuffer[i].Event.KeyEvent.bKeyDown == 0)
-						{
-							//clearScrn();
-							drawBorder();
-							mkSubWindowiii(1,1,68,10,"servers:");
-							//text display
-							//mkSubWindowiii(1,11,62,68,"");
-							//text input
-							//mkSubWindowiii(63,11,68,68,"");
-							pos = 0;
-							Write = YES;
-						}
 					break;
 				}
 				if (eventBuffer[i].Event.KeyEvent.bKeyDown == 1)
@@ -310,6 +370,8 @@ int eventHandler()
 					}
 				}
 				break;
+				
+				//mouse events
 				case MOUSE_EVENT:
 					offsetx = eventBuffer[i].Event.MouseEvent.dwMousePosition.X;
 					offsety = eventBuffer[i].Event.MouseEvent.dwMousePosition.Y;
@@ -334,5 +396,6 @@ int eventHandler()
 			drawBorder();
 			Write = NO;
 		}
+		send(clientSocket, buf, bytesRecieved + 1, 0);
 	}
 }
